@@ -1,0 +1,15 @@
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\bin\Debug\Tgo_Requests.dll
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\bin\Debug\Tgo_Requests.pdb
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\bin\Debug\OTAPI.dll
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\bin\Debug\TerrariaServer.exe
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\bin\Debug\TShockAPI.dll
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\bin\Debug\HttpServer.dll
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\bin\Debug\MySql.Data.dll
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\bin\Debug\BCrypt.Net.dll
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\bin\Debug\Mono.Data.Sqlite.dll
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\obj\Debug\Tgo_Requests.csprojAssemblyReference.cache
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\obj\Debug\Tgo_Requests.csproj.CoreCompileInputs.cache
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\obj\Debug\Tgo_Requests.csproj.CopyComplete
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\obj\Debug\Tgo_Requests.dll
+C:\Users\Nathan\source\repos\Tgo_Requests\Tgo_Requests\obj\Debug\Tgo_Requests.pdb
