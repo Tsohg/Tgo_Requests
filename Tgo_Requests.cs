@@ -9,6 +9,7 @@ using Terraria;
 using System.Net.Sockets;
 using System.Net;
 using System.IO;
+using System.Threading;
 
 namespace Tgo_Requests
 {
@@ -33,7 +34,9 @@ namespace Tgo_Requests
 
         public override void Initialize()
         {
-
+            //TShock.Log.ConsoleInfo("Hello world");
+            Thread t = new Thread(new ThreadStart(Connect));
+            t.Start();
         }
 
         protected override void Dispose(bool disposing)
@@ -48,8 +51,7 @@ namespace Tgo_Requests
         private void Connect()
         {
             TcpListener listener = new TcpListener(IPE);
-            //System.IO.File.AppendAllText(tgoLogPath, "Attempting to connect a client...");
-            //sw.WriteLine("Attempting to connect a client...");
+            TShock.Log.ConsoleInfo("TGO: Awaiting connection...");
             try
             {
                 while (true)
@@ -58,8 +60,7 @@ namespace Tgo_Requests
                     Socket client = listener.AcceptSocket();
                     if (client != null)
                     {
-                        //sw.WriteLine("Client Connected: " + client.LocalEndPoint);
-                        //System.IO.File.AppendAllText(tgoLogPath, "Client Connected: " + client.LocalEndPoint);
+                        TShock.Log.ConsoleInfo("TGO: Connected a client => " + client.LocalEndPoint);
                         Tgo_Client_Listener tcl = new Tgo_Client_Listener(client);
                     }
                 }
@@ -67,8 +68,7 @@ namespace Tgo_Requests
             catch (Exception e)
             {
                 listener.Stop();
-                //System.IO.File.AppendAllText(tgoLogPath, "Error: " + e.Message);
-                //sw.WriteLine("Error: " + e.Message);
+                TShock.Log.ConsoleInfo("TGO Error: " + e.Message);
             }
         }
 
