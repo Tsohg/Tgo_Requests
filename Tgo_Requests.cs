@@ -19,6 +19,7 @@ namespace Tgo_Requests
         private static int PORT = 10337;
         private static IPAddress IP = IPAddress.Parse("173.236.15.24");
         private static IPEndPoint IPE = new IPEndPoint(IP, PORT);
+        private static Thread t;
 
         public override string Name => "Tgo_Requests";
 
@@ -35,7 +36,7 @@ namespace Tgo_Requests
         public override void Initialize()
         {
             //TShock.Log.ConsoleInfo("Hello world");
-            Thread t = new Thread(new ThreadStart(Connect));
+            t = new Thread(new ThreadStart(Connect));
             t.Start();
         }
 
@@ -43,7 +44,7 @@ namespace Tgo_Requests
         {
             if(disposing)
             {
-
+                t.Abort();
             }
             base.Dispose(disposing);
         }
