@@ -20,6 +20,7 @@ namespace Tgo_Requests
         private static IPAddress IP = IPAddress.Parse("173.236.15.24");
         private static IPEndPoint IPE = new IPEndPoint(IP, PORT);
         private static Thread t;
+        private List<Socket> clients;
 
         public override string Name => "Tgo_Requests";
 
@@ -36,6 +37,8 @@ namespace Tgo_Requests
         public override void Initialize()
         {
             //TShock.Log.ConsoleInfo("Hello world");
+            clients = new List<Socket>();
+            TShockAPI.Hooks.PlayerHooks.PlayerPostLogin += LinkTgo;
             t = new Thread(new ThreadStart(Connect));
             t.Start();
         }
@@ -45,24 +48,46 @@ namespace Tgo_Requests
             if(disposing)
             {
                 t.Abort();
+                TShockAPI.Hooks.PlayerHooks.PlayerPostLogin -= LinkTgo;
             }
             base.Dispose(disposing);
+        }
+
+        /// <summary>
+        /// Links client socket remote ip in list to TSPlayer's ip address.
+        /// </summary>
+        /// <param name="args"></param>
+        private void LinkTgo(TShockAPI.Hooks.PlayerPostLoginEventArgs args)
+        {
+            foreach(Socket c in clients)
+            {
+                TShock.Log.ConsoleInfo(c.RemoteEndPoint.ToString().Split(':')[0] + "     " + args.Player.IP);
+                if(c.RemoteEndPoint.ToString().Split(':')[0] == args.Player.IP) //will require more testing than just this.
+                {
+                    //Send signal to TgoExt which is the TSPlayer name.
+                    StreamWriter sw = new StreamWriter(new NetworkStream(c));
+                    sw.WriteLine(args.Player.Name);
+                    sw.Flush();
+                    //Set up client listener.
+                    Tgo_Client_Listener tgcl = new Tgo_Client_Listener(c);
+                }
+            }
         }
 
         private void Connect()
         {
             TcpListener listener = new TcpListener(IPE);
-            TShock.Log.ConsoleInfo("TGO: Awaiting connection...");
+            listener.Start();
+            //TShock.Log.ConsoleInfo("TGO: Awaiting connection... ");
             try
             {
                 while (true)
                 {
-                    listener.Start();
                     Socket client = listener.AcceptSocket();
                     if (client != null)
                     {
-                        TShock.Log.ConsoleInfo("TGO: Connected a client => " + client.LocalEndPoint);
-                        Tgo_Client_Listener tcl = new Tgo_Client_Listener(client);
+                        TShock.Log.ConsoleInfo("TGO: Connected a client => " + client.RemoteEndPoint.ToString());
+                        clients.Add(client);
                     }
                 }
             }
@@ -93,8 +118,9 @@ namespace Tgo_Requests
                         StreamReader sr = new StreamReader(netStream);
 
                         //read message sent by client as a request...
-                        string request = await sr.ReadToEndAsync();
-
+                        //TShock.Log.ConsoleInfo("Attempting to recieve a message...");
+                        string request = await sr.ReadLineAsync();
+                        //TShock.Log.ConsoleInfo("Request Recieved: " + request);
                         //process request
                         Tgo_Req_Method req = new Tgo_Req_Method(request);
                     }
@@ -111,16 +137,24 @@ namespace Tgo_Requests
             public Tgo_Req_Method(string request)
             {
                 string[] req = request.Split(',');
+                //TShock.Log.ConsoleInfo("did we make it?  " + req.Length + " " + (req.Length < 2));
                 if (req.Length < 2) //drop request if not in correct format.
-                    return;
+                   return;
                 TSPlayer tplr = GetTSPlayerByName(req[0]);
+                //TShock.Log.ConsoleInfo(tplr.Name + " :: " + tplr.UUID);
+                if(tplr == null)
+                {
+                    TShock.Log.ConsoleError("TShock Player is null.");
+                    return;
+                }
+                //TShock.Log.ConsoleInfo(tplr.Name);
 
                 //translate string to method. execute method if user has permissions.
                 switch (req[1])
                 {
                     case "HelloWorld":
                         if (tplr.HasPermission("TGO.HelloWorld"))
-                            TShock.Log.ConsoleInfo("Hello World!");
+                            TShock.Log.ConsoleInfo("Hello World!"); //replace with method. This is an example for testing.
                         else goto default;
                         break;
                     default:
@@ -130,7 +164,7 @@ namespace Tgo_Requests
                 }
             }
 
-            private TSPlayer GetTSPlayerByName(string name)
+            public static TSPlayer GetTSPlayerByName(string name)
             {
                 foreach (TSPlayer plr in TShock.Players)
                     if (plr.Name == name)
