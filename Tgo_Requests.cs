@@ -136,9 +136,9 @@ namespace Tgo_Requests
                         StreamReader sr = new StreamReader(netStream);
 
                         //read message sent by client as a request...
-                        //TShock.Log.ConsoleInfo("Attempting to recieve a message...");
+                        TShock.Log.ConsoleInfo("Attempting to recieve a message...");
                         string request = await sr.ReadLineAsync();
-                        //TShock.Log.ConsoleInfo("Request Recieved: " + request);
+                        TShock.Log.ConsoleInfo("Request Recieved: " + request);
                         //process request
                         Tgo_Req_Method req = new Tgo_Req_Method(request, client);
                     }
@@ -154,11 +154,11 @@ namespace Tgo_Requests
         {
             public Tgo_Req_Method(string request, Socket client)
             {
-                //TShock.Log.ConsoleInfo("did we make it?  " + req.Length + " " + (req.Length < 2));
-                if (request != "") //drop request if not in correct format.
+                TShock.Log.ConsoleInfo("did we make it?");
+                if (request == "") //drop request if not in correct format.
                     return;
                 TSPlayer tplr = tgoUsers[client].Item1;
-                //TShock.Log.ConsoleInfo(tplr.Name + " :: " + tplr.UUID);
+                TShock.Log.ConsoleInfo(tplr.Name + " :: " + tplr.UUID);
                 if (tplr == null)
                 {
                     TShock.Log.ConsoleError("TShock Player is null.");
@@ -176,27 +176,45 @@ namespace Tgo_Requests
                         break;
 
                     case "Point1":
-                        if (tplr.HasPermission("TGO.Point1"))
+                        if (tplr.HasPermission("TGO.Point1")) //Permissions are a bit iffy.
+                        {
                             foreach (Command c in Commands.ChatCommands)
+                            {
                                 if (c.Name == "Point1")
+                                {
                                     c.Run("", tplr, null);
-                                else goto default;
+                                }
+                            }
+                        }
+                        else goto default;
                         break;
 
                     case "Point2":
-                        if (tplr.HasPermission("TGO.Point2"))
+                        if (tplr.HasPermission("TGO.Point2")) //Permissions are a bit iffy.
+                        {
                             foreach (Command c in Commands.ChatCommands)
+                            {
                                 if (c.Name == "Point2")
+                                {
                                     c.Run("", tplr, null);
-                                else goto default;
+                                }
+                            }
+                        }
+                        else goto default;
                         break;
 
                     case "Cut":
-                        if (tplr.HasPermission("TGO.Cut"))
+                        if (tplr.HasPermission("TGO.Cut")) //Permissions are a bit iffy.
+                        {
                             foreach (Command c in Commands.ChatCommands)
+                            {
                                 if (c.Name == "Cut")
+                                {
                                     c.Run("", tplr, null);
-                                else goto default;
+                                }
+                            }
+                        }
+                        else goto default;
                         break;
 
                     default:
