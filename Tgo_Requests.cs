@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TShockAPI;
 using TerrariaApi.Server;
 using Terraria;
@@ -16,15 +13,16 @@ namespace Tgo_Requests
     [ApiVersion(2, 1)]
     public class Tgo_Requests : TerrariaPlugin
     {
-        private static int PORT = 10337;
-        private static IPAddress IP = IPAddress.Parse("173.236.15.24");
-        private static IPEndPoint IPE = new IPEndPoint(IP, PORT);
+        private static readonly int PORT = 10337;
+        private static readonly IPAddress IP = IPAddress.Parse("173.236.15.24");
+        private static readonly IPEndPoint IPE = new IPEndPoint(IP, PORT);
         private static Thread t;
-        private List<Socket> clients;
+        private List<Socket> tempClients; //temporary client buffer
+        public static Dictionary<Socket, Tuple<TSPlayer, List<ushort>>> tgoUsers; //mapping of socket to a TSPlayer and their world edit clipboard.
 
         public override string Name => "Tgo_Requests";
 
-        public override Version Version => new Version(1,0);
+        public override Version Version => new Version(1, 0);
 
         public override string Author => "Tsohg";
 
@@ -37,32 +35,38 @@ namespace Tgo_Requests
         public override void Initialize()
         {
             //TShock.Log.ConsoleInfo("Hello world");
-            clients = new List<Socket>();
+            tempClients = new List<Socket>();
+            tgoUsers = new Dictionary<Socket, Tuple<TSPlayer, List<ushort>>>();
             TShockAPI.Hooks.PlayerHooks.PlayerPostLogin += LinkTgo;
+            TShockAPI.Hooks.PlayerHooks.PlayerLogout += UnlinkTgo;
             t = new Thread(new ThreadStart(Connect));
             t.Start();
         }
 
         protected override void Dispose(bool disposing)
         {
-            if(disposing)
+            if (disposing)
             {
                 t.Abort();
                 TShockAPI.Hooks.PlayerHooks.PlayerPostLogin -= LinkTgo;
+                TShockAPI.Hooks.PlayerHooks.PlayerLogout -= UnlinkTgo;
             }
             base.Dispose(disposing);
         }
 
         /// <summary>
         /// Links client socket remote ip in list to TSPlayer's ip address.
+        /// TODO: Set up a dictionary with the socket being the key, and TSPlayer Name being the value.
+        /// TODO: On Player Logout, remove the socket/name entry from the dictionary.
         /// </summary>
         /// <param name="args"></param>
         private void LinkTgo(TShockAPI.Hooks.PlayerPostLoginEventArgs args)
         {
-            foreach(Socket c in clients)
+            foreach (Socket c in tempClients)
             {
+                //user.key = socket
                 TShock.Log.ConsoleInfo(c.RemoteEndPoint.ToString().Split(':')[0] + "     " + args.Player.IP);
-                if(c.RemoteEndPoint.ToString().Split(':')[0] == args.Player.IP) //will require more testing than just this.
+                if (c.RemoteEndPoint.ToString().Split(':')[0] == args.Player.IP) //will require more testing than just this.
                 {
                     //Send signal to TgoExt which is the TSPlayer name.
                     StreamWriter sw = new StreamWriter(new NetworkStream(c));
@@ -70,6 +74,21 @@ namespace Tgo_Requests
                     sw.Flush();
                     //Set up client listener.
                     Tgo_Client_Listener tgcl = new Tgo_Client_Listener(c);
+                    //map socket to player and remove from temp. client storage
+                    tgoUsers.Add(c, new Tuple<TSPlayer, List<ushort>>(args.Player, new List<ushort>()));
+                    tempClients.Remove(c);
+                }
+            }
+        }
+
+        private void UnlinkTgo(TShockAPI.Hooks.PlayerLogoutEventArgs args)
+        {
+            foreach (KeyValuePair<Socket, Tuple<TSPlayer, List<ushort>>> tgoUser in tgoUsers)
+            {
+                if (tgoUser.Value.Item1.Name == args.Player.Name)
+                {
+                    tgoUsers.Remove(tgoUser.Key);
+                    break;
                 }
             }
         }
@@ -78,7 +97,6 @@ namespace Tgo_Requests
         {
             TcpListener listener = new TcpListener(IPE);
             listener.Start();
-            //TShock.Log.ConsoleInfo("TGO: Awaiting connection... ");
             try
             {
                 while (true)
@@ -87,7 +105,7 @@ namespace Tgo_Requests
                     if (client != null)
                     {
                         TShock.Log.ConsoleInfo("TGO: Connected a client => " + client.RemoteEndPoint.ToString());
-                        clients.Add(client);
+                        tempClients.Add(client);
                     }
                 }
             }
@@ -122,7 +140,7 @@ namespace Tgo_Requests
                         string request = await sr.ReadLineAsync();
                         //TShock.Log.ConsoleInfo("Request Recieved: " + request);
                         //process request
-                        Tgo_Req_Method req = new Tgo_Req_Method(request);
+                        Tgo_Req_Method req = new Tgo_Req_Method(request, client);
                     }
                 }
                 catch (Exception e)
@@ -134,15 +152,14 @@ namespace Tgo_Requests
 
         private class Tgo_Req_Method
         {
-            public Tgo_Req_Method(string request)
+            public Tgo_Req_Method(string request, Socket client)
             {
-                string[] req = request.Split(',');
                 //TShock.Log.ConsoleInfo("did we make it?  " + req.Length + " " + (req.Length < 2));
-                if (req.Length < 2) //drop request if not in correct format.
-                   return;
-                TSPlayer tplr = GetTSPlayerByName(req[0]);
+                if (request != "") //drop request if not in correct format.
+                    return;
+                TSPlayer tplr = tgoUsers[client].Item1;
                 //TShock.Log.ConsoleInfo(tplr.Name + " :: " + tplr.UUID);
-                if(tplr == null)
+                if (tplr == null)
                 {
                     TShock.Log.ConsoleError("TShock Player is null.");
                     return;
@@ -150,16 +167,41 @@ namespace Tgo_Requests
                 //TShock.Log.ConsoleInfo(tplr.Name);
 
                 //translate string to method. execute method if user has permissions.
-                switch (req[1])
+                switch (request)
                 {
                     case "HelloWorld":
                         if (tplr.HasPermission("TGO.HelloWorld"))
                             TShock.Log.ConsoleInfo("Hello World!"); //replace with method. This is an example for testing.
                         else goto default;
                         break;
+
+                    case "Point1":
+                        if (tplr.HasPermission("TGO.Point1"))
+                            foreach (Command c in Commands.ChatCommands)
+                                if (c.Name == "Point1")
+                                    c.Run("", tplr, null);
+                                else goto default;
+                        break;
+
+                    case "Point2":
+                        if (tplr.HasPermission("TGO.Point2"))
+                            foreach (Command c in Commands.ChatCommands)
+                                if (c.Name == "Point2")
+                                    c.Run("", tplr, null);
+                                else goto default;
+                        break;
+
+                    case "Cut":
+                        if (tplr.HasPermission("TGO.Cut"))
+                            foreach (Command c in Commands.ChatCommands)
+                                if (c.Name == "Cut")
+                                    c.Run("", tplr, null);
+                                else goto default;
+                        break;
+
                     default:
                         TShock.Log.ConsoleError("" + tplr.Name + " tried to execute " +
-                            req[1] + " but did not have permission!");
+                            request + " but did not have permission!");
                         break;
                 }
             }
