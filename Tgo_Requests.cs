@@ -7,6 +7,8 @@ using System.Net.Sockets;
 using System.Net;
 using System.IO;
 using System.Threading;
+using System.Drawing;
+using System.Text;
 
 namespace Tgo_Requests
 {
@@ -18,7 +20,7 @@ namespace Tgo_Requests
         private static readonly IPEndPoint IPE = new IPEndPoint(IP, PORT);
         private static Thread t;
         private List<Socket> tempClients; //temporary client buffer
-        public static Dictionary<Socket, Tuple<TSPlayer, List<ushort>>> tgoUsers; //mapping of socket to a TSPlayer and their world edit clipboard.
+        public static Dictionary<Socket, Tuple<TSPlayer, Clipboard>> tgoUsers; //mapping of socket to a TSPlayer and their world edit clipboard.
 
         public override string Name => "Tgo_Requests";
 
@@ -34,11 +36,13 @@ namespace Tgo_Requests
 
         public override void Initialize()
         {
-            //TShock.Log.ConsoleInfo("Hello world");
             tempClients = new List<Socket>();
-            tgoUsers = new Dictionary<Socket, Tuple<TSPlayer, List<ushort>>>();
+            tgoUsers = new Dictionary<Socket, Tuple<TSPlayer, Clipboard>>();
             TShockAPI.Hooks.PlayerHooks.PlayerPostLogin += LinkTgo;
             TShockAPI.Hooks.PlayerHooks.PlayerLogout += UnlinkTgo;
+            TShockAPI.Hooks.PlayerHooks.PlayerLogout += UpdateClientPlayerListOnLogout;
+            TShockAPI.Hooks.PlayerHooks.PlayerPostLogin += UpdateClientPlayerListOnLogin;
+
             t = new Thread(new ThreadStart(Connect));
             t.Start();
         }
@@ -50,14 +54,54 @@ namespace Tgo_Requests
                 t.Abort();
                 TShockAPI.Hooks.PlayerHooks.PlayerPostLogin -= LinkTgo;
                 TShockAPI.Hooks.PlayerHooks.PlayerLogout -= UnlinkTgo;
+                TShockAPI.Hooks.PlayerHooks.PlayerLogout -= UpdateClientPlayerListOnLogout;
+                TShockAPI.Hooks.PlayerHooks.PlayerPostLogin -= UpdateClientPlayerListOnLogin;
             }
             base.Dispose(disposing);
         }
 
+        private void UpdateClientPlayerListOnLogout(TShockAPI.Hooks.PlayerLogoutEventArgs args)
+        {
+            TShock.Log.ConsoleInfo("Updating client player list on logout...");
+            UpdateClientPlayerList();
+        }
+
+        private void UpdateClientPlayerListOnLogin(TShockAPI.Hooks.PlayerPostLoginEventArgs args)
+        {
+            TShock.Log.ConsoleInfo("Updating client player list on login...");
+            UpdateClientPlayerList();
+        }
+
+        /// <summary>
+        /// Updates all clients who are listening with player info.
+        /// </summary>
+        private void UpdateClientPlayerList()
+        {
+            try
+            {
+                StringBuilder message = new StringBuilder("PL,"); //PL is an identifier
+                foreach (TSPlayer plr in TShock.Players)
+                    if(plr != null)
+                        message.Append(plr.Name + ",");
+                //debug
+                TShock.Log.ConsoleInfo(message.ToString());
+                foreach (KeyValuePair<Socket, Tuple<TSPlayer, Clipboard>> kv in tgoUsers)
+                {
+                    StreamWriter wr = new StreamWriter(new NetworkStream(kv.Key));
+                    wr.WriteLine(message.ToString());
+                    wr.Flush();
+                    wr.Close(); //beware close
+                }
+            }
+            catch (Exception e)
+            {
+                TShock.Log.ConsoleError("UpdateClientPlayerList Error: " + e.Message);
+                return;
+            }
+        }
+
         /// <summary>
         /// Links client socket remote ip in list to TSPlayer's ip address.
-        /// TODO: Set up a dictionary with the socket being the key, and TSPlayer Name being the value.
-        /// TODO: On Player Logout, remove the socket/name entry from the dictionary.
         /// </summary>
         /// <param name="args"></param>
         private void LinkTgo(TShockAPI.Hooks.PlayerPostLoginEventArgs args)
@@ -72,18 +116,33 @@ namespace Tgo_Requests
                     StreamWriter sw = new StreamWriter(new NetworkStream(c));
                     sw.WriteLine(args.Player.Name);
                     sw.Flush();
+
+                    //try send player list. this hook works.
+                    StringBuilder message = new StringBuilder("PL,");
+                    foreach (TSPlayer plr in TShock.Players)
+                        if (plr != null)
+                            message.Append(plr.Name + ",");
+                    sw.WriteLine(message.ToString());
+                    sw.Flush();
+                    sw.Close(); //beware of close.
+
                     //Set up client listener.
                     Tgo_Client_Listener tgcl = new Tgo_Client_Listener(c);
+
                     //map socket to player and remove from temp. client storage
-                    tgoUsers.Add(c, new Tuple<TSPlayer, List<ushort>>(args.Player, new List<ushort>()));
+                    tgoUsers.Add(c, new Tuple<TSPlayer, Clipboard>(args.Player, new Clipboard(-1, -1, null)));
                     tempClients.Remove(c);
                 }
             }
         }
 
+        /// <summary>
+        /// TODO: Disable buttons/features on logout.
+        /// </summary>
+        /// <param name="args"></param>
         private void UnlinkTgo(TShockAPI.Hooks.PlayerLogoutEventArgs args)
         {
-            foreach (KeyValuePair<Socket, Tuple<TSPlayer, List<ushort>>> tgoUser in tgoUsers)
+            foreach (KeyValuePair<Socket, Tuple<TSPlayer, Clipboard>> tgoUser in tgoUsers)
             {
                 if (tgoUser.Value.Item1.Name == args.Player.Name)
                 {
@@ -116,6 +175,20 @@ namespace Tgo_Requests
             }
         }
 
+        public class Clipboard
+        {
+            public List<ushort> tileIds; //all tileids
+            public int length; //length of rectangle
+            public int width; //width of rectangle
+
+            public Clipboard(int length, int width, List<ushort> tileIds)
+            {
+                this.tileIds = tileIds;
+                this.length = length;
+                this.width = width;
+            }
+        }
+
         private class Tgo_Client_Listener
         {
             private Socket client;
@@ -145,7 +218,7 @@ namespace Tgo_Requests
                 }
                 catch (Exception e)
                 {
-
+                    TShock.Log.ConsoleError(e.Message);
                 }
             }
         }

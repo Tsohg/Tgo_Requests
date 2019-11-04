@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.438
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tgo_Requests", "Tgo_Requests.csproj", "{0301D0BF-2368-4730-89F1-9BA25CF1622B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0301D0BF-2368-4730-89F1-9BA25CF1622B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0301D0BF-2368-4730-89F1-9BA25CF1622B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0301D0BF-2368-4730-89F1-9BA25CF1622B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0301D0BF-2368-4730-89F1-9BA25CF1622B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5A0C8DA1-2907-498F-85CD-96439DE2A6D5}
+	EndGlobalSection
+EndGlobal
