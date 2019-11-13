@@ -62,13 +62,13 @@ namespace Tgo_Requests
 
         private void UpdateClientPlayerListOnLogout(TShockAPI.Hooks.PlayerLogoutEventArgs args)
         {
-            TShock.Log.ConsoleInfo("Updating client player list on logout...");
+            //TShock.Log.ConsoleInfo("Updating client player list on logout...");
             UpdateClientPlayerList();
         }
 
         private void UpdateClientPlayerListOnLogin(TShockAPI.Hooks.PlayerPostLoginEventArgs args)
         {
-            TShock.Log.ConsoleInfo("Updating client player list on login...");
+            //TShock.Log.ConsoleInfo("Updating client player list on login...");
             UpdateClientPlayerList();
         }
 
@@ -84,7 +84,7 @@ namespace Tgo_Requests
                     if(plr != null)
                         message.Append(plr.Name + ",");
                 //debug
-                TShock.Log.ConsoleInfo(message.ToString());
+                //TShock.Log.ConsoleInfo(message.ToString());
                 foreach (KeyValuePair<Socket, Tuple<TSPlayer, Clipboard>> kv in tgoUsers)
                 {
                     StreamWriter wr = new StreamWriter(new NetworkStream(kv.Key));
@@ -227,20 +227,21 @@ namespace Tgo_Requests
         {
             public Tgo_Req_Method(string request, Socket client)
             {
-                TShock.Log.ConsoleInfo("did we make it?");
+                //TShock.Log.ConsoleInfo("did we make it?");
                 if (request == "") //drop request if not in correct format.
                     return;
                 TSPlayer tplr = tgoUsers[client].Item1;
-                TShock.Log.ConsoleInfo(tplr.Name + " :: " + tplr.UUID);
+                //TShock.Log.ConsoleInfo(tplr.Name + " :: " + tplr.UUID);
                 if (tplr == null)
                 {
                     TShock.Log.ConsoleError("TShock Player is null.");
                     return;
                 }
                 //TShock.Log.ConsoleInfo(tplr.Name);
-
+                string[] param = request.Split(',');
+                //TShock.Log.ConsoleError("param[0] : " + param[0]);
                 //translate string to method. execute method if user has permissions.
-                switch (request)
+                switch (param[0])
                 {
                     case "HelloWorld":
                         if (tplr.HasPermission("TGO.HelloWorld"))
@@ -249,7 +250,7 @@ namespace Tgo_Requests
                         break;
 
                     case "Point1":
-                        if (tplr.HasPermission("TGO.Point1")) //Permissions are a bit iffy.
+                        if (tplr.HasPermission("TGO.Point1"))
                         {
                             foreach (Command c in Commands.ChatCommands)
                             {
@@ -263,7 +264,7 @@ namespace Tgo_Requests
                         break;
 
                     case "Point2":
-                        if (tplr.HasPermission("TGO.Point2")) //Permissions are a bit iffy.
+                        if (tplr.HasPermission("TGO.Point2"))
                         {
                             foreach (Command c in Commands.ChatCommands)
                             {
@@ -277,13 +278,55 @@ namespace Tgo_Requests
                         break;
 
                     case "Cut":
-                        if (tplr.HasPermission("TGO.Cut")) //Permissions are a bit iffy.
+                        if (tplr.HasPermission("TGO.Cut"))
                         {
                             foreach (Command c in Commands.ChatCommands)
                             {
                                 if (c.Name == "Cut")
                                 {
                                     c.Run("", tplr, null);
+                                }
+                            }
+                        }
+                        else goto default;
+                        break;
+
+                    case "Mute":
+                        if (tplr.HasPermission("tshock.rest.mute"))
+                        {
+                            foreach (Command c in Commands.ChatCommands)
+                            {
+                                if (c.Name == "TgoMute")
+                                {
+                                    c.Run("", tplr, new List<string>(param));
+                                }
+                            }
+                        }
+                        else goto default;
+                        break;
+
+                    case "Kick":
+                        if (tplr.HasPermission("tshock.rest.kick"))
+                        {
+                            foreach (Command c in Commands.ChatCommands)
+                            {
+                                if (c.Name == "TgoKick")
+                                {
+                                    c.Run("", tplr, new List<string>(param));
+                                }
+                            }
+                        }
+                        else goto default;
+                        break;
+
+                    case "Ban":
+                        if (tplr.HasPermission("tshock.rest.ban"))
+                        {
+                            foreach (Command c in Commands.ChatCommands)
+                            {
+                                if (c.Name == "TgoBan")
+                                {
+                                    c.Run("", tplr, new List<string>(param));
                                 }
                             }
                         }
